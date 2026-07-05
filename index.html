@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tipuj Ligu — Chance Liga 26/27</title>
+
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+  :root {
+    --bg: #F4F6F2; --surface: #FFFFFF; --ink: #12251C; --ink-dim: #6B7C72; --line: #E3E8DF;
+    --pitch: #1C8B54; --pitch-dark: #146B41; --amber: #EFA23A; --correct: #1FA968; --wrong: #D65B45; --pending: #C9CFC5;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); }
+  body { color: var(--ink); font-family: 'Inter', sans-serif; min-height: 100vh; }
+  .tl-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 22px; background: var(--surface); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tl-brand { display: flex; align-items: baseline; gap: 10px; }
+  .tl-logo { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 22px; letter-spacing: -0.02em; }
+  .tl-logo em { font-style: normal; color: var(--pitch); }
+  .tl-sub { font-size: 12px; color: var(--ink-dim); font-weight: 500; }
+  .tl-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .tl-admin-pill { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink-dim); padding: 8px 14px; border-radius: 20px; cursor: pointer; transition: all .15s ease; }
+  .tl-admin-pill:hover { border-color: var(--pitch); color: var(--pitch); }
+  .tl-admin-pill.on { border-color: var(--pitch); background: var(--pitch); color: #fff; }
+  .tl-pinbox { display: flex; gap: 6px; align-items: center; }
+  .tl-pinbox input { width: 90px; background: var(--bg); border: 1.5px solid var(--line); color: var(--ink); font-family: 'Inter', sans-serif; padding: 7px 10px; border-radius: 8px; letter-spacing: 3px; }
+  .tl-pinbox input:focus { outline: none; border-color: var(--pitch); }
+  .tl-pin-err { color: var(--wrong); font-size: 11px; font-weight: 600; }
+  .tl-refresh-pill { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink-dim); padding: 8px 14px; border-radius: 20px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all .15s ease; }
+  .tl-refresh-pill:hover:not(:disabled) { border-color: var(--pitch); color: var(--pitch); }
+  .tl-refresh-pill:disabled { cursor: default; opacity: .8; }
+  .tl-refresh-pill.done { border-color: var(--correct); color: var(--correct); }
+  .tl-refresh-icon { display: inline-block; font-size: 14px; line-height: 1; }
+  .tl-refresh-pill.spinning .tl-refresh-icon { animation: tl-spin 0.7s linear infinite; }
+  @keyframes tl-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .tl-save-indicator { font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 8px; }
+  .tl-save-indicator.saving { color: var(--ink-dim); background: var(--bg); }
+  .tl-save-indicator.saved { color: var(--correct); background: rgba(31,169,104,0.1); }
+  .tl-save-indicator.error { color: var(--wrong); background: rgba(214,91,69,0.1); }
+  .tl-retry { font-size: 11px; font-weight: 700; text-decoration: underline; background: none; border: none; color: var(--wrong); cursor: pointer; padding: 0; }
+  .tl-setup-banner { margin: 16px 22px 0; padding: 14px 16px; background: #fff8e6; border: 1.5px solid var(--amber); border-radius: 10px; font-size: 13px; line-height: 1.6; }
+  .tl-setup-banner code { background: #fff; border: 1px solid var(--line); padding: 2px 6px; border-radius: 6px; font-size: 12px; word-break: break-all; }
+  .tl-nav { display: flex; gap: 4px; padding: 14px 22px 0; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .tl-navitem { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 14px; padding: 10px 4px; margin-right: 22px; color: var(--ink-dim); cursor: pointer; border-bottom: 3px solid transparent; }
+  .tl-navitem.active { color: var(--ink); border-bottom-color: var(--pitch); }
+  .tl-body { padding: 20px 22px 48px; max-width: 900px; margin: 0 auto; }
+  .tl-roundbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
+  .tl-round-chip { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px; padding: 7px 16px; border: 1.5px solid var(--line); color: var(--ink-dim); background: var(--surface); border-radius: 20px; cursor: pointer; }
+  .tl-round-chip.active { color: #fff; background: var(--ink); border-color: var(--ink); }
+  .tl-add-round { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 7px 14px; background: transparent; border: 1.5px dashed var(--pitch); color: var(--pitch); border-radius: 20px; cursor: pointer; }
+  .tl-empty { color: var(--ink-dim); font-size: 14px; padding: 36px 16px; text-align: center; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--surface); }
+  .tl-round-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  .tl-round-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 20px; }
+  .tl-round-actions { display: flex; gap: 14px; align-items: center; }
+  .tl-edit-round { background: none; border: none; color: var(--pitch); font-size: 12px; font-weight: 600; cursor: pointer; opacity: .85; }
+  .tl-edit-round:hover { opacity: 1; }
+  .tl-del-round { background: none; border: none; color: var(--wrong); font-size: 12px; font-weight: 600; cursor: pointer; opacity: .75; }
+  .tl-del-round:hover { opacity: 1; }
+  .tl-match-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(18,37,28,0.04); }
+  .tl-match-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .tl-teams { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; }
+  .tl-teams .vs { color: var(--ink-dim); font-weight: 400; margin: 0 8px; font-size: 14px; }
+  .tl-date { color: var(--ink-dim); font-size: 12px; margin-top: 3px; }
+  .tl-edit-fields { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .tl-edit-fields input { background: var(--bg); border: 1.5px solid var(--line); color: var(--ink); font-family: 'Inter', sans-serif; padding: 7px 9px; border-radius: 8px; font-size: 13px; }
+  .tl-edit-fields input.teams { width: 140px; }
+  .tl-edit-fields input.date { width: 120px; }
+  .tl-segmented { display: inline-flex; border: 1.5px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .tl-seg-btn { font-family: 'Space Grotesk', sans-serif; font-size: 13px; font-weight: 700; padding: 6px 12px; background: var(--surface); color: var(--ink-dim); border: none; border-right: 1.5px solid var(--line); cursor: default; }
+  .tl-seg-btn:last-child { border-right: none; }
+  .tl-seg-btn.clickable { cursor: pointer; }
+  .tl-seg-btn.clickable:hover { background: var(--bg); }
+  .tl-seg-btn.result-active { background: var(--ink); color: #fff; }
+  .tl-tip-rows { display: flex; flex-direction: column; gap: 8px; }
+  .tl-tip-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 2px; border-top: 1px solid var(--line); }
+  .tl-tip-row:first-child { border-top: none; padding-top: 0; }
+  .tl-tip-player { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 64px; }
+  .tl-seg-btn.tip-empty { color: var(--pending); }
+  .tl-seg-btn.tip-active { background: var(--ink); color: #fff; }
+  .tl-seg-btn.tip-correct { background: var(--correct); color: #fff; border-color: var(--correct); }
+  .tl-seg-btn.tip-wrong { background: var(--bg); color: var(--wrong); text-decoration: line-through; }
+  .tl-viewonly-tip { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--pending); }
+  .tl-viewonly-tip.correct { background: var(--correct); color: #fff; }
+  .tl-viewonly-tip.wrong { background: var(--bg); color: var(--wrong); text-decoration: line-through; }
+  .tl-viewonly-tip.filled { background: var(--ink); color: #fff; }
+  .tl-del-match { margin-top: 12px; background: none; border: none; color: var(--wrong); font-size: 12px; font-weight: 600; cursor: pointer; opacity: .65; }
+  .tl-del-match:hover { opacity: 1; }
+  .tl-save-round { display: block; margin: 0 0 16px auto; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 22px; background: var(--pitch); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  .tl-save-round:hover { background: var(--pitch-dark); }
+  .tl-addmatch { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 14px 16px; background: var(--surface); border: 1.5px dashed var(--line); border-radius: 14px; }
+  .tl-addmatch input { background: var(--bg); border: 1.5px solid var(--line); color: var(--ink); font-family: 'Inter', sans-serif; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+  .tl-addmatch input.teams { width: 150px; }
+  .tl-addmatch input.date { width: 120px; }
+  .tl-addmatch button { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 16px; background: var(--pitch); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  .tl-addmatch button:hover { background: var(--pitch-dark); }
+  .tl-vs-label { color: var(--ink-dim); font-size: 12px; }
+  table.tl-standings { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+  table.tl-standings th, table.tl-standings td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
+  table.tl-standings tr:last-child td { border-bottom: none; }
+  table.tl-standings th { color: var(--ink-dim); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 700; }
+  .tl-rank { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; color: var(--ink-dim); }
+  .tl-rank.gold { color: var(--amber); }
+  .tl-rank.silver { color: #9AA79E; }
+  .tl-rank.bronze { color: #B57A50; }
+  .tl-points { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16px; color: var(--pitch-dark); }
+  .tl-name-cell { font-weight: 600; }
+  .tl-history { display: flex; flex-direction: column; gap: 22px; }
+  .tl-history-round-title { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px; margin-bottom: 8px; }
+  .tl-history-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+  table.tl-history-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  table.tl-history-table th, table.tl-history-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: center; }
+  table.tl-history-table tr:last-child td { border-bottom: none; }
+  table.tl-history-table th { color: var(--ink-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; }
+  .tl-history-teams { text-align: left; font-weight: 600; }
+  .tl-history-teams .vs { color: var(--ink-dim); font-weight: 400; margin: 0 6px; }
+  .tl-history-result { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; background: var(--bg); color: var(--pending); }
+  .tl-history-result.set { background: var(--ink); color: #fff; }
+  .tl-history-tip { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 6px; font-weight: 700; font-size: 12px; color: var(--ink-dim); background: var(--bg); }
+  .tl-history-tip.empty { color: var(--pending); }
+  .tl-history-tip.correct { background: var(--correct); color: #fff; }
+  .tl-history-tip.wrong { color: var(--wrong); text-decoration: line-through; background: var(--bg); }
+  .tl-hint { font-size: 12px; color: var(--ink-dim); margin-top: 18px; line-height: 1.6; }
+  @media (max-width: 520px) { .tl-teams { font-size: 15px; } .tl-tip-player { min-width: 54px; font-size: 12px; } }
+</style>
+</head>
+<body>
+
+<div id="root">Načítám appku…</div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback, useRef } = React;
+
+let BLOB_ID = "";
+const JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
+
+async function blobGet(id) {
+  const res = await fetch(`${JSONBLOB_BASE}/${id}`, { headers: { "Content-Type": "application/json" }, cache: "no-store" });
+  if (!res.ok) throw new Error("blobGet failed: " + res.status);
+  return res.json();
+}
+async function blobSet(id, data) {
+  const res = await fetch(`${JSONBLOB_BASE}/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  if (!res.ok) throw new Error("blobSet failed: " + res.status);
+}
+async function blobCreate(data) {
+  const res = await fetch(JSONBLOB_BASE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  if (!res.ok) throw new Error("blobCreate failed: " + res.status);
+  const location = res.headers.get("Location") || "";
+  const id = location.split("/").filter(Boolean).pop();
+  return id;
+}
+
+const TEAMS = ["Slavia","Sparta","Plzeň","Olomouc","Jablonec","Baník","Slovácko","Hradec Králové","Pardubice","Zlín","Teplice","Bohemians","Artis","Mladá Boleslav","Liberec","Zbrojovka"];
+const PLAYERS = ["Michal","Kuba","Taťka","Tomáš","Jirka","Honza"];
+const ADMIN_PIN = "2026";
+const OPTIONS = ["1","0","2"];
+const OPTION_LABEL = { "1": "Domácí", "0": "Remíza", "2": "Hosté" };
+
+function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+function emptyTips() { const t = {}; PLAYERS.forEach((p) => (t[p] = null)); return t; }
+
+function TipujLiga() {
+  const [rounds, setRounds] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+  const [tab, setTab] = useState("zapasy");
+  const [activeRoundId, setActiveRoundId] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showPinBox, setShowPinBox] = useState(false);
+  const [pinInput, setPinInput] = useState("");
+  const [pinError, setPinError] = useState(false);
+  const [newMatchHome, setNewMatchHome] = useState({});
+  const [newMatchAway, setNewMatchAway] = useState({});
+  const [newMatchDate, setNewMatchDate] = useState({});
+  const [editRoundId, setEditRoundId] = useState(null);
+  const [draftMatches, setDraftMatches] = useState({});
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [justRefreshed, setJustRefreshed] = useState(false);
+  const [saveStatus, setSaveStatus] = useState("idle");
+  const [setupBlobId, setSetupBlobId] = useState(null);
+  const lastPayloadRef = useRef(null);
+
+  const loadData = useCallback(async (manual) => {
+    if (manual) setIsRefreshing(true);
+    if (!BLOB_ID) {
+      try {
+        const newId = await blobCreate({ rounds: [] });
+        setSetupBlobId(newId);
+        setRounds([]);
+      } catch (e) { setSetupBlobId("ERROR"); }
+      finally { setLoaded(true); if (manual) setIsRefreshing(false); }
+      return;
+    }
+    try {
+      const data = await blobGet(BLOB_ID);
+      const parsed = Array.isArray(data.rounds) ? data.rounds : [];
+      setRounds(parsed);
+      setActiveRoundId((prev) => { if (prev && parsed.some((r) => r.id === prev)) return prev; return parsed.length ? parsed[parsed.length - 1].id : null; });
+    } catch (e) { if (!manual) setRounds([]); }
+    finally { setLoaded(true); if (manual) { setIsRefreshing(false); setJustRefreshed(true); setTimeout(() => setJustRefreshed(false), 1500); } }
+  }, []);
+
+  useEffect(() => { loadData(false); }, [loadData]);
+
+  const persist = useCallback(async (next) => {
+    setRounds(next);
+    lastPayloadRef.current = next;
+    if (!BLOB_ID) { setSaveStatus("error"); return; }
+    setSaveStatus("saving");
+    try { await blobSet(BLOB_ID, { rounds: next }); setSaveStatus("saved"); setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 1800); }
+    catch (e) { setSaveStatus("error"); }
+  }, []);
+
+  function retrySave() { if (lastPayloadRef.current) persist(lastPayloadRef.current); }
+
+  function tryAdminLogin() {
+    if (pinInput === ADMIN_PIN) { setIsAdmin(true); setShowPinBox(false); setPinInput(""); setPinError(false); }
+    else { setPinError(true); }
+  }
+
+  function addRound() {
+    const nextNumber = rounds.length ? Math.max(...rounds.map((r) => r.number)) + 1 : 1;
+    const round = { id: uid(), number: nextNumber, matches: [] };
+    persist([...rounds, round]);
+    setActiveRoundId(round.id);
+  }
+
+  function deleteRound(roundId) {
+    const next = rounds.filter((r) => r.id !== roundId);
+    persist(next);
+    if (activeRoundId === roundId) setActiveRoundId(next.length ? next[next.length - 1].id : null);
+  }
+
+  function addMatch(roundId) {
+    const home = (newMatchHome[roundId] || "").trim();
+    const away = (newMatchAway[roundId] || "").trim();
+    if (!home || !away || home === away) return;
+    const date = (newMatchDate[roundId] || "").trim();
+    const next = rounds.map((r) => r.id !== roundId ? r : { ...r, matches: [...r.matches, { id: uid(), home, away, date, result: null, tips: emptyTips() }] });
+    persist(next);
+    setNewMatchHome((s) => ({ ...s, [roundId]: "" }));
+    setNewMatchAway((s) => ({ ...s, [roundId]: "" }));
+    setNewMatchDate((s) => ({ ...s, [roundId]: "" }));
+  }
+
+  function deleteMatch(roundId, matchId) {
+    persist(rounds.map((r) => r.id !== roundId ? r : { ...r, matches: r.matches.filter((m) => m.id !== matchId) }));
+  }
+
+  function toggleEditRound(round) {
+    if (editRoundId === round.id) { setEditRoundId(null); setDraftMatches({}); return; }
+    const draft = {};
+    round.matches.forEach((m) => { draft[m.id] = { home: m.home, away: m.away, date: m.date || "" }; });
+    setDraftMatches(draft);
+    setEditRoundId(round.id);
+  }
+
+  function updateDraftField(matchId, field, value) {
+    setDraftMatches((s) => ({ ...s, [matchId]: { ...s[matchId], [field]: value } }));
+  }
+
+  function saveEditRound(roundId) {
+    const next = rounds.map((r) => {
+      if (r.id !== roundId) return r;
+      return { ...r, matches: r.matches.map((m) => {
+        const d = draftMatches[m.id];
+        if (!d) return m;
+        const home = (d.home || "").trim() || m.home;
+        const away = (d.away || "").trim() || m.away;
+        const date = (d.date || "").trim();
+        return { ...m, home, away, date };
+      })};
+    });
+    persist(next);
+    setEditRoundId(null);
+    setDraftMatches({});
+  }
+
+  function setTip(roundId, matchId, player, value) {
+    persist(rounds.map((r) => {
+      if (r.id !== roundId) return r;
+      return { ...r, matches: r.matches.map((m) => { if (m.id !== matchId) return m; const next = m.tips[player] === value ? null : value; return { ...m, tips: { ...m.tips, [player]: next } }; }) };
+    }));
+  }
+
+  function setResult(roundId, matchId, value) {
+    persist(rounds.map((r) => {
+      if (r.id !== roundId) return r;
+      return { ...r, matches: r.matches.map((m) => m.id !== matchId ? m : { ...m, result: m.result === value ? null : value }) };
+    }));
+  }
+
+  function computeStandings() {
+    const stats = {};
+    PLAYERS.forEach((p) => (stats[p] = { points: 0, correct: 0, played: 0 }));
+    rounds.forEach((r) => { r.matches.forEach((m) => { if (m.result == null) return; PLAYERS.forEach((p) => { const tip = m.tips[p]; if (tip == null) return; stats[p].played += 1; if (tip === m.result) { stats[p].points += 1; stats[p].correct += 1; } }); }); });
+    return PLAYERS.map((p) => ({ name: p, ...stats[p] })).sort((a, b) => b.points - a.points || b.correct - a.correct);
+  }
+
+  const activeRound = rounds.find((r) => r.id === activeRoundId) || null;
+  const sortedRounds = [...rounds].sort((a, b) => a.number - b.number);
+
+  return (
+    <div className="tl-root">
+      <div className="tl-header">
+        <div className="tl-brand">
+          <div className="tl-logo">Tipuj<em>Ligu</em></div>
+          <div className="tl-sub">Chance Liga 26/27</div>
+        </div>
+        <div className="tl-header-right">
+          {isAdmin && saveStatus !== "idle" && (
+            <div className={`tl-save-indicator ${saveStatus}`}>
+              {saveStatus === "saving" && "Ukládám…"}
+              {saveStatus === "saved" && "Uloženo ✓"}
+              {saveStatus === "error" && (<>Uložení se nezdařilo<button className="tl-retry" onClick={retrySave}>zkusit znovu</button></>)}
+            </div>
+          )}
+          <button className={`tl-refresh-pill ${isRefreshing ? "spinning" : ""} ${justRefreshed ? "done" : ""}`} onClick={() => loadData(true)} disabled={isRefreshing}>
+            <span className="tl-refresh-icon">⟳</span>{justRefreshed ? "Aktualizováno" : "Aktualizovat"}
+          </button>
+          {!isAdmin && !showPinBox && (<button className="tl-admin-pill" onClick={() => setShowPinBox(true)}>Admin režim</button>)}
+          {!isAdmin && showPinBox && (
+            <div className="tl-pinbox">
+              <input type="password" placeholder="PIN" value={pinInput} maxLength={8} onChange={(e) => { setPinInput(e.target.value); setPinError(false); }} onKeyDown={(e) => e.key === "Enter" && tryAdminLogin()} autoFocus />
+              <button className="tl-admin-pill" onClick={tryAdminLogin}>OK</button>
+              {pinError && <span className="tl-pin-err">Špatný PIN</span>}
+            </div>
+          )}
+          {isAdmin && (<button className="tl-admin-pill on" onClick={() => setIsAdmin(false)}>Admin • odhlásit</button>)}
+        </div>
+      </div>
+
+      {setupBlobId && setupBlobId !== "ERROR" && (
+        <div className="tl-setup-banner">
+          <strong>Jednorázové nastavení:</strong> appka vytvořila sdílené úložiště dat. Zkopíruj tohle ID:
+          <br /><code>{setupBlobId}</code><br />
+          a v souboru index.html nahraď řádek <code>let BLOB_ID = "";</code> za <code>let BLOB_ID = "{setupBlobId}";</code>, pak soubor znovu ulož na GitHub.
+        </div>
+      )}
+      {setupBlobId === "ERROR" && (<div className="tl-setup-banner">Nepodařilo se vytvořit úložiště dat. Zkus obnovit stránku.</div>)}
+
+      <div className="tl-nav">
+        <div className={`tl-navitem ${tab === "zapasy" ? "active" : ""}`} onClick={() => setTab("zapasy")}>Zápasy</div>
+        <div className={`tl-navitem ${tab === "tabulka" ? "active" : ""}`} onClick={() => setTab("tabulka")}>Tabulka</div>
+        <div className={`tl-navitem ${tab === "historie" ? "active" : ""}`} onClick={() => setTab("historie")}>Přehled kol</div>
+      </div>
+
+      <div className="tl-body">
+        {!loaded && <div className="tl-empty">Načítám data…</div>}
+
+        {loaded && tab === "zapasy" && (
+          <>
+            <div className="tl-roundbar">
+              {sortedRounds.map((r) => (<div key={r.id} className={`tl-round-chip ${r.id === activeRoundId ? "active" : ""}`} onClick={() => setActiveRoundId(r.id)}>Kolo {r.number}</div>))}
+              {isAdmin && <button className="tl-add-round" onClick={addRound}>+ Nové kolo</button>}
+            </div>
+
+            {!activeRound && (<div className="tl-empty">{rounds.length === 0 ? (isAdmin ? "Zatím žádné kolo. Klikni na „+ Nové kolo“ a začni zadávat zápasy." : "Zatím nejsou žádná kola. Správce je brzy přidá.") : "Vyber kolo nahoře."}</div>)}
+
+            {activeRound && (
+              <div>
+                <div className="tl-round-head">
+                  <div className="tl-round-title">Kolo {activeRound.number}</div>
+                  {isAdmin && (
+                    <div className="tl-round-actions">
+                      <button className="tl-edit-round" onClick={() => toggleEditRound(activeRound)}>{editRoundId === activeRound.id ? "zrušit úpravu" : "upravit kolo"}</button>
+                      <button className="tl-del-round" onClick={() => deleteRound(activeRound.id)}>smazat kolo</button>
+                    </div>
+                  )}
+                </div>
+
+                {activeRound.matches.length === 0 && <div className="tl-empty">V tomto kole ještě nejsou žádné zápasy.</div>}
+
+                {activeRound.matches.map((m) => (
+                  <div className="tl-match-card" key={m.id}>
+                    <div className="tl-match-top">
+                      <div>
+                        {editRoundId === activeRound.id ? (
+                          <div className="tl-edit-fields">
+                            <input className="teams" list="tl-teams-list" value={draftMatches[m.id]?.home ?? m.home} onChange={(e) => updateDraftField(m.id, "home", e.target.value)} />
+                            <span className="tl-vs-label">vs</span>
+                            <input className="teams" list="tl-teams-list" value={draftMatches[m.id]?.away ?? m.away} onChange={(e) => updateDraftField(m.id, "away", e.target.value)} />
+                            <input className="date" placeholder="25.7. 17:00" value={draftMatches[m.id]?.date ?? (m.date || "")} onChange={(e) => updateDraftField(m.id, "date", e.target.value)} />
+                          </div>
+                        ) : (<><div className="tl-teams">{m.home}<span className="vs">vs</span>{m.away}</div>{m.date && <div className="tl-date">{m.date}</div>}</>)}
+                      </div>
+                      <div className="tl-segmented">
+                        {OPTIONS.map((opt) => (<button key={opt} className={`tl-seg-btn ${isAdmin ? "clickable" : ""} ${m.result === opt ? "result-active" : ""}`} onClick={() => isAdmin && setResult(activeRound.id, m.id, opt)} title={OPTION_LABEL[opt]}>{opt}</button>))}
+                      </div>
+                    </div>
+
+                    <div className="tl-tip-rows">
+                      {PLAYERS.map((p) => {
+                        const tip = m.tips[p];
+                        return (
+                          <div className="tl-tip-row" key={p}>
+                            <span className="tl-tip-player">{p}</span>
+                            {isAdmin ? (
+                              <div className="tl-segmented">
+                                {OPTIONS.map((opt) => { let cls = "tl-seg-btn clickable"; if (tip === opt) { cls += m.result != null ? (tip === m.result ? " tip-correct" : " tip-wrong") : " tip-active"; } else { cls += " tip-empty"; } return <button key={opt} className={cls} onClick={() => setTip(activeRound.id, m.id, p, opt)}>{opt}</button>; })}
+                              </div>
+                            ) : (<div className={`tl-viewonly-tip ${tip == null ? "" : (m.result != null ? (tip === m.result ? "correct" : "wrong") : "filled")}`}>{tip != null ? tip : "–"}</div>)}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {isAdmin && <button className="tl-del-match" onClick={() => deleteMatch(activeRound.id, m.id)}>smazat zápas</button>}
+                  </div>
+                ))}
+
+                {editRoundId === activeRound.id && (<button className="tl-save-round" onClick={() => saveEditRound(activeRound.id)}>Uložit</button>)}
+
+                {isAdmin && (
+                  <div className="tl-addmatch">
+                    <input className="teams" list="tl-teams-list" placeholder="Domácí" value={newMatchHome[activeRound.id] || ""} onChange={(e) => setNewMatchHome((s) => ({ ...s, [activeRound.id]: e.target.value }))} />
+                    <span className="tl-vs-label">vs</span>
+                    <input className="teams" list="tl-teams-list" placeholder="Hosté" value={newMatchAway[activeRound.id] || ""} onChange={(e) => setNewMatchAway((s) => ({ ...s, [activeRound.id]: e.target.value }))} />
+                    <input className="date" placeholder="25.7. 17:00" value={newMatchDate[activeRound.id] || ""} onChange={(e) => setNewMatchDate((s) => ({ ...s, [activeRound.id]: e.target.value }))} />
+                    <button onClick={() => addMatch(activeRound.id)}>+ Přidat zápas</button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <datalist id="tl-teams-list">{TEAMS.map((t) => <option value={t} key={t} />)}</datalist>
+
+            {isAdmin && (<div className="tl-hint">Klikni na 1 / 0 / 2 u hráče a zadej jeho tip. Stejně nastavíš výsledek zápasu vpravo nahoře v kartě.<br />Data se ukládají automaticky a jsou vidět všem, kdo appku otevřou.</div>)}
+          </>
+        )}
+
+        {loaded && tab === "tabulka" && (
+          <table className="tl-standings">
+            <thead><tr><th>#</th><th>Hráč</th><th>Odehráno</th><th>Trefeno</th><th>Úspěšnost</th><th>Body</th></tr></thead>
+            <tbody>
+              {computeStandings().map((s, i) => (
+                <tr key={s.name}>
+                  <td><span className={`tl-rank ${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}`}>{i + 1}</span></td>
+                  <td className="tl-name-cell">{s.name}</td>
+                  <td>{s.played}</td>
+                  <td>{s.correct}</td>
+                  <td>{s.played ? Math.round((s.correct / s.played) * 100) + "%" : "–"}</td>
+                  <td><span className="tl-points">{s.points}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+
+        {loaded && tab === "historie" && (
+          <div className="tl-history">
+            {rounds.length === 0 && <div className="tl-empty">Přehled je zatím prázdný — nejsou žádná kola.</div>}
+            {[...rounds].sort((a, b) => b.number - a.number).map((r) => (
+              <div className="tl-history-round" key={r.id}>
+                <div className="tl-history-round-title">Kolo {r.number}</div>
+                {r.matches.length === 0 ? (<div className="tl-empty">Žádné zápasy.</div>) : (
+                  <div className="tl-history-table-wrap">
+                    <table className="tl-history-table">
+                      <thead><tr><th>Zápas</th><th>Výsledek</th>{PLAYERS.map((p) => <th key={p}>{p}</th>)}</tr></thead>
+                      <tbody>
+                        {r.matches.map((m) => (
+                          <tr key={m.id}>
+                            <td className="tl-history-teams">{m.home}<span className="vs">–</span>{m.away}{m.date && <div className="tl-date">{m.date}</div>}</td>
+                            <td><span className={`tl-history-result ${m.result != null ? "set" : ""}`}>{m.result != null ? m.result : "–"}</span></td>
+                            {PLAYERS.map((p) => { const tip = m.tips[p]; let cls = "tl-history-tip"; if (tip == null) cls += " empty"; else if (m.result != null) cls += tip === m.result ? " correct" : " wrong"; return <td key={p}><span className={cls}>{tip != null ? tip : "–"}</span></td>; })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<TipujLiga />);
+</script>
+</body>
+</html>
