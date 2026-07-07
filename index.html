@@ -5,10 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tipuj Ligu — Chance Liga 26/27</title>
 
-<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
   :root {
@@ -132,357 +128,531 @@
 
 <div id="root">Načítám appku…</div>
 
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useCallback, useRef } = React;
+<script>
+(function () {
+  "use strict";
 
-let BLOB_ID = "";
-const JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
+  var BLOB_ID = ""; // <-- SEM vlož ID z banneru po prvním spuštění a znovu ulož soubor na GitHub
 
-async function blobGet(id) {
-  const res = await fetch(`${JSONBLOB_BASE}/${id}`, { headers: { "Content-Type": "application/json" }, cache: "no-store" });
-  if (!res.ok) throw new Error("blobGet failed: " + res.status);
-  return res.json();
-}
-async function blobSet(id, data) {
-  const res = await fetch(`${JSONBLOB_BASE}/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("blobSet failed: " + res.status);
-}
-async function blobCreate(data) {
-  const res = await fetch(JSONBLOB_BASE, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
-  if (!res.ok) throw new Error("blobCreate failed: " + res.status);
-  const location = res.headers.get("Location") || "";
-  const id = location.split("/").filter(Boolean).pop();
-  return id;
-}
+  var JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
 
-const TEAMS = ["Slavia","Sparta","Plzeň","Olomouc","Jablonec","Baník","Slovácko","Hradec Králové","Pardubice","Zlín","Teplice","Bohemians","Artis","Mladá Boleslav","Liberec","Zbrojovka"];
-const PLAYERS = ["Michal","Kuba","Taťka","Tomáš","Jirka","Honza"];
-const ADMIN_PIN = "2026";
-const OPTIONS = ["1","0","2"];
-const OPTION_LABEL = { "1": "Domácí", "0": "Remíza", "2": "Hosté" };
+  function blobGet(id) {
+    return fetch(JSONBLOB_BASE + "/" + id, { headers: { "Content-Type": "application/json" }, cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) throw new Error("blobGet failed: " + res.status);
+        return res.json();
+      });
+  }
 
-function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
-function emptyTips() { const t = {}; PLAYERS.forEach((p) => (t[p] = null)); return t; }
+  function blobSet(id, data) {
+    return fetch(JSONBLOB_BASE + "/" + id, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      if (!res.ok) throw new Error("blobSet failed: " + res.status);
+    });
+  }
 
-function TipujLiga() {
-  const [rounds, setRounds] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-  const [tab, setTab] = useState("zapasy");
-  const [activeRoundId, setActiveRoundId] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [showPinBox, setShowPinBox] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState(false);
-  const [newMatchHome, setNewMatchHome] = useState({});
-  const [newMatchAway, setNewMatchAway] = useState({});
-  const [newMatchDate, setNewMatchDate] = useState({});
-  const [editRoundId, setEditRoundId] = useState(null);
-  const [draftMatches, setDraftMatches] = useState({});
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [justRefreshed, setJustRefreshed] = useState(false);
-  const [saveStatus, setSaveStatus] = useState("idle");
-  const [setupBlobId, setSetupBlobId] = useState(null);
-  const lastPayloadRef = useRef(null);
+  function blobCreate(data) {
+    return fetch(JSONBLOB_BASE, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    }).then(function (res) {
+      if (!res.ok) throw new Error("blobCreate failed: " + res.status);
+      var location = res.headers.get("Location") || "";
+      var parts = location.split("/").filter(Boolean);
+      return parts[parts.length - 1];
+    });
+  }
 
-  const loadData = useCallback(async (manual) => {
-    if (manual) setIsRefreshing(true);
+  var TEAMS = ["Slavia", "Sparta", "Plzeň", "Olomouc", "Jablonec", "Baník", "Slovácko", "Hradec Králové", "Pardubice", "Zlín", "Teplice", "Bohemians", "Artis", "Mladá Boleslav", "Liberec", "Zbrojovka"];
+  var PLAYERS = ["Michal", "Kuba", "Taťka", "Tomáš", "Jirka", "Honza"];
+  var ADMIN_PIN = "2026";
+  var OPTIONS = ["1", "0", "2"];
+  var OPTION_LABEL = { "1": "Domácí", "0": "Remíza", "2": "Hosté" };
+
+  function uid() { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36); }
+  function emptyTips() { var t = {}; PLAYERS.forEach(function (p) { t[p] = null; }); return t; }
+  function esc(str) {
+    return String(str === null || str === undefined ? "" : str)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  var state = {
+    rounds: [],
+    loaded: false,
+    tab: "zapasy",
+    activeRoundId: null,
+    isAdmin: false,
+    showPinBox: false,
+    pinError: false,
+    editRoundId: null,
+    draftMatches: {},
+    newMatchDraft: {},
+    isRefreshing: false,
+    justRefreshed: false,
+    saveStatus: "idle",
+    setupBlobId: null
+  };
+  var lastPayload = null;
+
+  function loadData(manual) {
+    if (manual) { state.isRefreshing = true; render(); }
+
     if (!BLOB_ID) {
-      try {
-        const newId = await blobCreate({ rounds: [] });
-        setSetupBlobId(newId);
-        setRounds([]);
-      } catch (e) { setSetupBlobId("ERROR"); }
-      finally { setLoaded(true); if (manual) setIsRefreshing(false); }
+      blobCreate({ rounds: [] }).then(function (newId) {
+        state.setupBlobId = newId;
+        state.rounds = [];
+        state.loaded = true;
+        if (manual) state.isRefreshing = false;
+        render();
+      }).catch(function () {
+        state.setupBlobId = "ERROR";
+        state.loaded = true;
+        if (manual) state.isRefreshing = false;
+        render();
+      });
       return;
     }
-    try {
-      const data = await blobGet(BLOB_ID);
-      const parsed = Array.isArray(data.rounds) ? data.rounds : [];
-      setRounds(parsed);
-      setActiveRoundId((prev) => { if (prev && parsed.some((r) => r.id === prev)) return prev; return parsed.length ? parsed[parsed.length - 1].id : null; });
-    } catch (e) { if (!manual) setRounds([]); }
-    finally { setLoaded(true); if (manual) { setIsRefreshing(false); setJustRefreshed(true); setTimeout(() => setJustRefreshed(false), 1500); } }
-  }, []);
 
-  useEffect(() => { loadData(false); }, [loadData]);
-
-  const persist = useCallback(async (next) => {
-    setRounds(next);
-    lastPayloadRef.current = next;
-    if (!BLOB_ID) { setSaveStatus("error"); return; }
-    setSaveStatus("saving");
-    try { await blobSet(BLOB_ID, { rounds: next }); setSaveStatus("saved"); setTimeout(() => setSaveStatus((s) => (s === "saved" ? "idle" : s)), 1800); }
-    catch (e) { setSaveStatus("error"); }
-  }, []);
-
-  function retrySave() { if (lastPayloadRef.current) persist(lastPayloadRef.current); }
-
-  function tryAdminLogin() {
-    if (pinInput === ADMIN_PIN) { setIsAdmin(true); setShowPinBox(false); setPinInput(""); setPinError(false); }
-    else { setPinError(true); }
+    blobGet(BLOB_ID).then(function (data) {
+      var parsed = Array.isArray(data.rounds) ? data.rounds : [];
+      state.rounds = parsed;
+      var stillExists = state.activeRoundId && parsed.some(function (r) { return r.id === state.activeRoundId; });
+      if (!stillExists) {
+        state.activeRoundId = parsed.length ? parsed[parsed.length - 1].id : null;
+      }
+      state.loaded = true;
+      if (manual) {
+        state.isRefreshing = false;
+        state.justRefreshed = true;
+        setTimeout(function () { state.justRefreshed = false; render(); }, 1500);
+      }
+      render();
+    }).catch(function () {
+      state.loaded = true;
+      if (manual) state.isRefreshing = false;
+      render();
+    });
   }
 
-  function addRound() {
-    const nextNumber = rounds.length ? Math.max(...rounds.map((r) => r.number)) + 1 : 1;
-    const round = { id: uid(), number: nextNumber, matches: [] };
-    persist([...rounds, round]);
-    setActiveRoundId(round.id);
+  function persist(next) {
+    state.rounds = next;
+    lastPayload = next;
+    render();
+
+    if (!BLOB_ID) { state.saveStatus = "error"; render(); return; }
+
+    state.saveStatus = "saving";
+    render();
+    blobSet(BLOB_ID, { rounds: next }).then(function () {
+      state.saveStatus = "saved";
+      render();
+      setTimeout(function () {
+        if (state.saveStatus === "saved") { state.saveStatus = "idle"; render(); }
+      }, 1800);
+    }).catch(function () {
+      state.saveStatus = "error";
+      render();
+    });
   }
 
-  function deleteRound(roundId) {
-    const next = rounds.filter((r) => r.id !== roundId);
+  window.tlRefresh = function () { loadData(true); };
+
+  window.tlShowPinBox = function () { state.showPinBox = true; render(); };
+  window.tlPinInputKeydown = function (e) { if (e.key === "Enter") window.tlTryLogin(); };
+  window.tlTryLogin = function () {
+    var val = document.getElementById("tl-pin-input").value;
+    if (val === ADMIN_PIN) { state.isAdmin = true; state.showPinBox = false; state.pinError = false; }
+    else { state.pinError = true; }
+    render();
+  };
+  window.tlLogout = function () { state.isAdmin = false; render(); };
+
+  window.tlSetTab = function (t) { state.tab = t; render(); };
+  window.tlSetActiveRound = function (id) { state.activeRoundId = id; render(); };
+
+  window.tlAddRound = function () {
+    var nextNumber = 1;
+    if (state.rounds.length) {
+      nextNumber = Math.max.apply(null, state.rounds.map(function (r) { return r.number; })) + 1;
+    }
+    var round = { id: uid(), number: nextNumber, matches: [] };
+    var next = state.rounds.concat([round]);
+    state.activeRoundId = round.id;
     persist(next);
-    if (activeRoundId === roundId) setActiveRoundId(next.length ? next[next.length - 1].id : null);
-  }
+  };
 
-  function addMatch(roundId) {
-    const home = (newMatchHome[roundId] || "").trim();
-    const away = (newMatchAway[roundId] || "").trim();
+  window.tlDeleteRound = function (roundId) {
+    var next = state.rounds.filter(function (r) { return r.id !== roundId; });
+    if (state.activeRoundId === roundId) {
+      state.activeRoundId = next.length ? next[next.length - 1].id : null;
+    }
+    persist(next);
+  };
+
+  window.tlAddMatch = function (roundId) {
+    var d = state.newMatchDraft[roundId] || {};
+    var home = (d.home || "").trim();
+    var away = (d.away || "").trim();
     if (!home || !away || home === away) return;
-    const date = (newMatchDate[roundId] || "").trim();
-    const next = rounds.map((r) => r.id !== roundId ? r : { ...r, matches: [...r.matches, { id: uid(), home, away, date, result: null, tips: emptyTips() }] });
-    persist(next);
-    setNewMatchHome((s) => ({ ...s, [roundId]: "" }));
-    setNewMatchAway((s) => ({ ...s, [roundId]: "" }));
-    setNewMatchDate((s) => ({ ...s, [roundId]: "" }));
-  }
-
-  function deleteMatch(roundId, matchId) {
-    persist(rounds.map((r) => r.id !== roundId ? r : { ...r, matches: r.matches.filter((m) => m.id !== matchId) }));
-  }
-
-  function toggleEditRound(round) {
-    if (editRoundId === round.id) { setEditRoundId(null); setDraftMatches({}); return; }
-    const draft = {};
-    round.matches.forEach((m) => { draft[m.id] = { home: m.home, away: m.away, date: m.date || "" }; });
-    setDraftMatches(draft);
-    setEditRoundId(round.id);
-  }
-
-  function updateDraftField(matchId, field, value) {
-    setDraftMatches((s) => ({ ...s, [matchId]: { ...s[matchId], [field]: value } }));
-  }
-
-  function saveEditRound(roundId) {
-    const next = rounds.map((r) => {
+    var date = (d.date || "").trim();
+    var next = state.rounds.map(function (r) {
       if (r.id !== roundId) return r;
-      return { ...r, matches: r.matches.map((m) => {
-        const d = draftMatches[m.id];
-        if (!d) return m;
-        const home = (d.home || "").trim() || m.home;
-        const away = (d.away || "").trim() || m.away;
-        const date = (d.date || "").trim();
-        return { ...m, home, away, date };
-      })};
+      var matches = r.matches.concat([{ id: uid(), home: home, away: away, date: date, result: null, tips: emptyTips() }]);
+      var copy = {}; for (var k in r) copy[k] = r[k]; copy.matches = matches;
+      return copy;
+    });
+    state.newMatchDraft[roundId] = { home: "", away: "", date: "" };
+    persist(next);
+  };
+
+  window.tlNewMatchInput = function (roundId, field, value) {
+    if (!state.newMatchDraft[roundId]) state.newMatchDraft[roundId] = {};
+    state.newMatchDraft[roundId][field] = value;
+  };
+
+  window.tlDeleteMatch = function (roundId, matchId) {
+    var next = state.rounds.map(function (r) {
+      if (r.id !== roundId) return r;
+      var copy = {}; for (var k in r) copy[k] = r[k];
+      copy.matches = r.matches.filter(function (m) { return m.id !== matchId; });
+      return copy;
     });
     persist(next);
-    setEditRoundId(null);
-    setDraftMatches({});
-  }
+  };
 
-  function setTip(roundId, matchId, player, value) {
-    persist(rounds.map((r) => {
-      if (r.id !== roundId) return r;
-      return { ...r, matches: r.matches.map((m) => { if (m.id !== matchId) return m; const next = m.tips[player] === value ? null : value; return { ...m, tips: { ...m.tips, [player]: next } }; }) };
-    }));
-  }
+  window.tlToggleEditRound = function (roundId) {
+    if (state.editRoundId === roundId) { state.editRoundId = null; state.draftMatches = {}; render(); return; }
+    var round = null;
+    for (var i = 0; i < state.rounds.length; i++) { if (state.rounds[i].id === roundId) { round = state.rounds[i]; break; } }
+    var draft = {};
+    round.matches.forEach(function (m) { draft[m.id] = { home: m.home, away: m.away, date: m.date || "" }; });
+    state.draftMatches = draft;
+    state.editRoundId = roundId;
+    render();
+  };
 
-  function setResult(roundId, matchId, value) {
-    persist(rounds.map((r) => {
+  window.tlDraftInput = function (matchId, field, value) {
+    if (!state.draftMatches[matchId]) state.draftMatches[matchId] = {};
+    state.draftMatches[matchId][field] = value;
+  };
+
+  window.tlSaveEditRound = function (roundId) {
+    var draftMatches = state.draftMatches;
+    var next = state.rounds.map(function (r) {
       if (r.id !== roundId) return r;
-      return { ...r, matches: r.matches.map((m) => m.id !== matchId ? m : { ...m, result: m.result === value ? null : value }) };
-    }));
-  }
+      var matches = r.matches.map(function (m) {
+        var d = draftMatches[m.id];
+        if (!d) return m;
+        var home = (d.home || "").trim() || m.home;
+        var away = (d.away || "").trim() || m.away;
+        var date = (d.date || "").trim();
+        var copy = {}; for (var k in m) copy[k] = m[k];
+        copy.home = home; copy.away = away; copy.date = date;
+        return copy;
+      });
+      var rcopy = {}; for (var k2 in r) rcopy[k2] = r[k2]; rcopy.matches = matches;
+      return rcopy;
+    });
+    state.editRoundId = null;
+    state.draftMatches = {};
+    persist(next);
+  };
+
+  window.tlSetTip = function (roundId, matchId, player, value) {
+    var next = state.rounds.map(function (r) {
+      if (r.id !== roundId) return r;
+      var matches = r.matches.map(function (m) {
+        if (m.id !== matchId) return m;
+        var nextVal = m.tips[player] === value ? null : value;
+        var tips = {}; for (var k in m.tips) tips[k] = m.tips[k];
+        tips[player] = nextVal;
+        var copy = {}; for (var k2 in m) copy[k2] = m[k2]; copy.tips = tips;
+        return copy;
+      });
+      var rcopy = {}; for (var k3 in r) rcopy[k3] = r[k3]; rcopy.matches = matches;
+      return rcopy;
+    });
+    persist(next);
+  };
+
+  window.tlSetResult = function (roundId, matchId, value) {
+    var next = state.rounds.map(function (r) {
+      if (r.id !== roundId) return r;
+      var matches = r.matches.map(function (m) {
+        if (m.id !== matchId) return m;
+        var copy = {}; for (var k in m) copy[k] = m[k];
+        copy.result = (m.result === value ? null : value);
+        return copy;
+      });
+      var rcopy = {}; for (var k2 in r) rcopy[k2] = r[k2]; rcopy.matches = matches;
+      return rcopy;
+    });
+    persist(next);
+  };
+
+  window.tlRetrySave = function () { if (lastPayload) persist(lastPayload); };
 
   function computeStandings() {
-    const stats = {};
-    PLAYERS.forEach((p) => (stats[p] = { points: 0, correct: 0, played: 0 }));
-    rounds.forEach((r) => { r.matches.forEach((m) => { if (m.result == null) return; PLAYERS.forEach((p) => { const tip = m.tips[p]; if (tip == null) return; stats[p].played += 1; if (tip === m.result) { stats[p].points += 1; stats[p].correct += 1; } }); }); });
-    return PLAYERS.map((p) => ({ name: p, ...stats[p] })).sort((a, b) => b.points - a.points || b.correct - a.correct);
+    var stats = {};
+    PLAYERS.forEach(function (p) { stats[p] = { points: 0, correct: 0, played: 0 }; });
+    state.rounds.forEach(function (r) {
+      r.matches.forEach(function (m) {
+        if (m.result === null || m.result === undefined) return;
+        PLAYERS.forEach(function (p) {
+          var tip = m.tips[p];
+          if (tip === null || tip === undefined) return;
+          stats[p].played += 1;
+          if (tip === m.result) { stats[p].points += 1; stats[p].correct += 1; }
+        });
+      });
+    });
+    var result = PLAYERS.map(function (p) {
+      return { name: p, points: stats[p].points, correct: stats[p].correct, played: stats[p].played };
+    });
+    result.sort(function (a, b) { return b.points - a.points || b.correct - a.correct; });
+    return result;
   }
 
-  const activeRound = rounds.find((r) => r.id === activeRoundId) || null;
-  const sortedRounds = [...rounds].sort((a, b) => a.number - b.number);
+  function render() {
+    var root = document.getElementById("root");
+    root.innerHTML = renderHeader() + renderSetupBanner() + renderNav() + renderBody();
+  }
 
-  return (
-    <div className="tl-root">
-      <div className="tl-header">
-        <div className="tl-brand">
-          <div className="tl-logo">Tipuj<em>Ligu</em></div>
-          <div className="tl-sub">Chance Liga 26/27</div>
-        </div>
-        <div className="tl-header-right">
-          {isAdmin && saveStatus !== "idle" && (
-            <div className={`tl-save-indicator ${saveStatus}`}>
-              {saveStatus === "saving" && "Ukládám…"}
-              {saveStatus === "saved" && "Uloženo ✓"}
-              {saveStatus === "error" && (<>Uložení se nezdařilo<button className="tl-retry" onClick={retrySave}>zkusit znovu</button></>)}
-            </div>
-          )}
-          <button className={`tl-refresh-pill ${isRefreshing ? "spinning" : ""} ${justRefreshed ? "done" : ""}`} onClick={() => loadData(true)} disabled={isRefreshing}>
-            <span className="tl-refresh-icon">⟳</span>{justRefreshed ? "Aktualizováno" : "Aktualizovat"}
-          </button>
-          {!isAdmin && !showPinBox && (<button className="tl-admin-pill" onClick={() => setShowPinBox(true)}>Admin režim</button>)}
-          {!isAdmin && showPinBox && (
-            <div className="tl-pinbox">
-              <input type="password" placeholder="PIN" value={pinInput} maxLength={8} onChange={(e) => { setPinInput(e.target.value); setPinError(false); }} onKeyDown={(e) => e.key === "Enter" && tryAdminLogin()} autoFocus />
-              <button className="tl-admin-pill" onClick={tryAdminLogin}>OK</button>
-              {pinError && <span className="tl-pin-err">Špatný PIN</span>}
-            </div>
-          )}
-          {isAdmin && (<button className="tl-admin-pill on" onClick={() => setIsAdmin(false)}>Admin • odhlásit</button>)}
-        </div>
-      </div>
+  function renderHeader() {
+    var right = "";
 
-      {setupBlobId && setupBlobId !== "ERROR" && (
-        <div className="tl-setup-banner">
-          <strong>Jednorázové nastavení:</strong> appka vytvořila sdílené úložiště dat. Zkopíruj tohle ID:
-          <br /><code>{setupBlobId}</code><br />
-          a v souboru index.html nahraď řádek <code>let BLOB_ID = "";</code> za <code>let BLOB_ID = "{setupBlobId}";</code>, pak soubor znovu ulož na GitHub.
-        </div>
-      )}
-      {setupBlobId === "ERROR" && (<div className="tl-setup-banner">Nepodařilo se vytvořit úložiště dat. Zkus obnovit stránku.</div>)}
+    if (state.isAdmin && state.saveStatus !== "idle") {
+      var inner = "";
+      if (state.saveStatus === "saving") inner = "Ukládám…";
+      else if (state.saveStatus === "saved") inner = "Uloženo ✓";
+      else if (state.saveStatus === "error") inner = "Uložení se nezdařilo" + '<button class="tl-retry" onclick="tlRetrySave()">zkusit znovu</button>';
+      right += '<div class="tl-save-indicator ' + state.saveStatus + '">' + inner + "</div>";
+    }
 
-      <div className="tl-nav">
-        <div className={`tl-navitem ${tab === "zapasy" ? "active" : ""}`} onClick={() => setTab("zapasy")}>Zápasy</div>
-        <div className={`tl-navitem ${tab === "tabulka" ? "active" : ""}`} onClick={() => setTab("tabulka")}>Tabulka</div>
-        <div className={`tl-navitem ${tab === "historie" ? "active" : ""}`} onClick={() => setTab("historie")}>Přehled kol</div>
-      </div>
+    var refreshClasses = "tl-refresh-pill" + (state.isRefreshing ? " spinning" : "") + (state.justRefreshed ? " done" : "");
+    right += '<button class="' + refreshClasses + '" onclick="tlRefresh()"' + (state.isRefreshing ? " disabled" : "") + ">" +
+      '<span class="tl-refresh-icon">&#8635;</span>' + (state.justRefreshed ? "Aktualizováno" : "Aktualizovat") + "</button>";
 
-      <div className="tl-body">
-        {!loaded && <div className="tl-empty">Načítám data…</div>}
+    if (!state.isAdmin && !state.showPinBox) {
+      right += '<button class="tl-admin-pill" onclick="tlShowPinBox()">Admin re&#382;im</button>';
+    } else if (!state.isAdmin && state.showPinBox) {
+      right += '<div class="tl-pinbox">' +
+        '<input id="tl-pin-input" type="password" placeholder="PIN" maxlength="8" onkeydown="tlPinInputKeydown(event)">' +
+        '<button class="tl-admin-pill" onclick="tlTryLogin()">OK</button>' +
+        (state.pinError ? '<span class="tl-pin-err">Chybny PIN</span>' : "") +
+        "</div>";
+    } else if (state.isAdmin) {
+      right += '<button class="tl-admin-pill on" onclick="tlLogout()">Admin - odhlasit</button>';
+    }
 
-        {loaded && tab === "zapasy" && (
-          <>
-            <div className="tl-roundbar">
-              {sortedRounds.map((r) => (<div key={r.id} className={`tl-round-chip ${r.id === activeRoundId ? "active" : ""}`} onClick={() => setActiveRoundId(r.id)}>Kolo {r.number}</div>))}
-              {isAdmin && <button className="tl-add-round" onClick={addRound}>+ Nové kolo</button>}
-            </div>
+    return '<div class="tl-header"><div class="tl-brand"><div class="tl-logo">Tipuj<em>Ligu</em></div>' +
+      '<div class="tl-sub">Chance Liga 26/27</div></div><div class="tl-header-right">' + right + "</div></div>";
+  }
 
-            {!activeRound && (<div className="tl-empty">{rounds.length === 0 ? (isAdmin ? "Zatím žádné kolo. Klikni na „+ Nové kolo“ a začni zadávat zápasy." : "Zatím nejsou žádná kola. Správce je brzy přidá.") : "Vyber kolo nahoře."}</div>)}
+  function renderSetupBanner() {
+    if (state.setupBlobId && state.setupBlobId !== "ERROR") {
+      return '<div class="tl-setup-banner"><strong>Jednorazove nastaveni:</strong> appka vytvorila sdilene uloziste dat. Zkopiruj tohle ID:<br>' +
+        "<code>" + esc(state.setupBlobId) + "</code><br>" +
+        'a v souboru index.html nahrad radek <code>var BLOB_ID = "";</code> za <code>var BLOB_ID = "' + esc(state.setupBlobId) + '";</code>, pak soubor znovu uloz na GitHub.</div>';
+    }
+    if (state.setupBlobId === "ERROR") {
+      return '<div class="tl-setup-banner">Nepodarilo se vytvorit uloziste dat. Zkus obnovit stranku.</div>';
+    }
+    return "";
+  }
 
-            {activeRound && (
-              <div>
-                <div className="tl-round-head">
-                  <div className="tl-round-title">Kolo {activeRound.number}</div>
-                  {isAdmin && (
-                    <div className="tl-round-actions">
-                      <button className="tl-edit-round" onClick={() => toggleEditRound(activeRound)}>{editRoundId === activeRound.id ? "zrušit úpravu" : "upravit kolo"}</button>
-                      <button className="tl-del-round" onClick={() => deleteRound(activeRound.id)}>smazat kolo</button>
-                    </div>
-                  )}
-                </div>
+  function renderNav() {
+    function item(key, label) {
+      return '<div class="tl-navitem ' + (state.tab === key ? "active" : "") + '" onclick="tlSetTab(\'' + key + '\')">' + label + "</div>";
+    }
+    return '<div class="tl-nav">' + item("zapasy", "Z&aacute;pasy") + item("tabulka", "Tabulka") + item("historie", "P&#345;ehled kol") + "</div>";
+  }
 
-                {activeRound.matches.length === 0 && <div className="tl-empty">V tomto kole ještě nejsou žádné zápasy.</div>}
+  function renderBody() {
+    if (!state.loaded) return '<div class="tl-body"><div class="tl-empty">Na&#269;&iacute;t&aacute;m data&hellip;</div></div>';
+    if (state.tab === "zapasy") return '<div class="tl-body">' + renderZapasy() + "</div>";
+    if (state.tab === "tabulka") return '<div class="tl-body">' + renderTabulka() + "</div>";
+    return '<div class="tl-body">' + renderHistorie() + "</div>";
+  }
 
-                {activeRound.matches.map((m) => (
-                  <div className="tl-match-card" key={m.id}>
-                    <div className="tl-match-top">
-                      <div>
-                        {editRoundId === activeRound.id ? (
-                          <div className="tl-edit-fields">
-                            <input className="teams" list="tl-teams-list" value={draftMatches[m.id]?.home ?? m.home} onChange={(e) => updateDraftField(m.id, "home", e.target.value)} />
-                            <span className="tl-vs-label">vs</span>
-                            <input className="teams" list="tl-teams-list" value={draftMatches[m.id]?.away ?? m.away} onChange={(e) => updateDraftField(m.id, "away", e.target.value)} />
-                            <input className="date" placeholder="25.7. 17:00" value={draftMatches[m.id]?.date ?? (m.date || "")} onChange={(e) => updateDraftField(m.id, "date", e.target.value)} />
-                          </div>
-                        ) : (<><div className="tl-teams">{m.home}<span className="vs">vs</span>{m.away}</div>{m.date && <div className="tl-date">{m.date}</div>}</>)}
-                      </div>
-                      <div className="tl-segmented">
-                        {OPTIONS.map((opt) => (<button key={opt} className={`tl-seg-btn ${isAdmin ? "clickable" : ""} ${m.result === opt ? "result-active" : ""}`} onClick={() => isAdmin && setResult(activeRound.id, m.id, opt)} title={OPTION_LABEL[opt]}>{opt}</button>))}
-                      </div>
-                    </div>
+  function renderZapasy() {
+    var sortedRounds = state.rounds.slice().sort(function (a, b) { return a.number - b.number; });
+    var html = '<div class="tl-roundbar">';
+    sortedRounds.forEach(function (r) {
+      html += '<div class="tl-round-chip ' + (r.id === state.activeRoundId ? "active" : "") + '" onclick="tlSetActiveRound(\'' + r.id + '\')">Kolo ' + r.number + "</div>";
+    });
+    if (state.isAdmin) html += '<button class="tl-add-round" onclick="tlAddRound()">+ Nov&eacute; kolo</button>';
+    html += "</div>";
 
-                    <div className="tl-tip-rows">
-                      {PLAYERS.map((p) => {
-                        const tip = m.tips[p];
-                        return (
-                          <div className="tl-tip-row" key={p}>
-                            <span className="tl-tip-player">{p}</span>
-                            {isAdmin ? (
-                              <div className="tl-segmented">
-                                {OPTIONS.map((opt) => { let cls = "tl-seg-btn clickable"; if (tip === opt) { cls += m.result != null ? (tip === m.result ? " tip-correct" : " tip-wrong") : " tip-active"; } else { cls += " tip-empty"; } return <button key={opt} className={cls} onClick={() => setTip(activeRound.id, m.id, p, opt)}>{opt}</button>; })}
-                              </div>
-                            ) : (<div className={`tl-viewonly-tip ${tip == null ? "" : (m.result != null ? (tip === m.result ? "correct" : "wrong") : "filled")}`}>{tip != null ? tip : "–"}</div>)}
-                          </div>
-                        );
-                      })}
-                    </div>
+    var activeRound = null;
+    for (var i = 0; i < state.rounds.length; i++) { if (state.rounds[i].id === state.activeRoundId) { activeRound = state.rounds[i]; break; } }
 
-                    {isAdmin && <button className="tl-del-match" onClick={() => deleteMatch(activeRound.id, m.id)}>smazat zápas</button>}
-                  </div>
-                ))}
+    if (!activeRound) {
+      var msg = state.rounds.length === 0
+        ? (state.isAdmin ? "Zat&iacute;m &#382;&aacute;dn&eacute; kolo. Klikni na &bdquo;+ Nov&eacute; kolo&ldquo; a za&#269;ni zad&aacute;vat z&aacute;pasy." : "Zat&iacute;m nejsou &#382;&aacute;dn&aacute; kola. Spr&aacute;vce je brzy p&#345;id&aacute;.")
+        : "Vyber kolo naho&#345;e.";
+      return html + '<div class="tl-empty">' + msg + "</div>" + renderTeamsDatalist();
+    }
 
-                {editRoundId === activeRound.id && (<button className="tl-save-round" onClick={() => saveEditRound(activeRound.id)}>Uložit</button>)}
+    html += '<div><div class="tl-round-head"><div class="tl-round-title">Kolo ' + activeRound.number + "</div>";
+    if (state.isAdmin) {
+      html += '<div class="tl-round-actions">' +
+        '<button class="tl-edit-round" onclick="tlToggleEditRound(\'' + activeRound.id + '\')">' + (state.editRoundId === activeRound.id ? "zru&scaron;it &uacute;pravu" : "upravit kolo") + "</button>" +
+        '<button class="tl-del-round" onclick="tlDeleteRound(\'' + activeRound.id + '\')">smazat kolo</button></div>';
+    }
+    html += "</div>";
 
-                {isAdmin && (
-                  <div className="tl-addmatch">
-                    <input className="teams" list="tl-teams-list" placeholder="Domácí" value={newMatchHome[activeRound.id] || ""} onChange={(e) => setNewMatchHome((s) => ({ ...s, [activeRound.id]: e.target.value }))} />
-                    <span className="tl-vs-label">vs</span>
-                    <input className="teams" list="tl-teams-list" placeholder="Hosté" value={newMatchAway[activeRound.id] || ""} onChange={(e) => setNewMatchAway((s) => ({ ...s, [activeRound.id]: e.target.value }))} />
-                    <input className="date" placeholder="25.7. 17:00" value={newMatchDate[activeRound.id] || ""} onChange={(e) => setNewMatchDate((s) => ({ ...s, [activeRound.id]: e.target.value }))} />
-                    <button onClick={() => addMatch(activeRound.id)}>+ Přidat zápas</button>
-                  </div>
-                )}
-              </div>
-            )}
+    if (activeRound.matches.length === 0) {
+      html += '<div class="tl-empty">V tomto kole je&scaron;t&#283; nejsou &#382;&aacute;dn&eacute; z&aacute;pasy.</div>';
+    }
 
-            <datalist id="tl-teams-list">{TEAMS.map((t) => <option value={t} key={t} />)}</datalist>
+    var editing = state.editRoundId === activeRound.id;
 
-            {isAdmin && (<div className="tl-hint">Klikni na 1 / 0 / 2 u hráče a zadej jeho tip. Stejně nastavíš výsledek zápasu vpravo nahoře v kartě.<br />Data se ukládají automaticky a jsou vidět všem, kdo appku otevřou.</div>)}
-          </>
-        )}
+    activeRound.matches.forEach(function (m) {
+      html += '<div class="tl-match-card">';
+      html += '<div class="tl-match-top"><div>';
+      if (editing) {
+        var d = state.draftMatches[m.id] || { home: m.home, away: m.away, date: m.date || "" };
+        html += '<div class="tl-edit-fields">' +
+          '<input class="teams" list="tl-teams-list" value="' + esc(d.home) + '" oninput="tlDraftInput(\'' + m.id + '\',\'home\',this.value)">' +
+          '<span class="tl-vs-label">vs</span>' +
+          '<input class="teams" list="tl-teams-list" value="' + esc(d.away) + '" oninput="tlDraftInput(\'' + m.id + '\',\'away\',this.value)">' +
+          '<input class="date" placeholder="25.7. 17:00" value="' + esc(d.date) + '" oninput="tlDraftInput(\'' + m.id + '\',\'date\',this.value)">' +
+          "</div>";
+      } else {
+        html += '<div class="tl-teams">' + esc(m.home) + '<span class="vs">vs</span>' + esc(m.away) + "</div>";
+        if (m.date) html += '<div class="tl-date">' + esc(m.date) + "</div>";
+      }
+      html += "</div>";
 
-        {loaded && tab === "tabulka" && (
-          <table className="tl-standings">
-            <thead><tr><th>#</th><th>Hráč</th><th>Odehráno</th><th>Trefeno</th><th>Úspěšnost</th><th>Body</th></tr></thead>
-            <tbody>
-              {computeStandings().map((s, i) => (
-                <tr key={s.name}>
-                  <td><span className={`tl-rank ${i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : ""}`}>{i + 1}</span></td>
-                  <td className="tl-name-cell">{s.name}</td>
-                  <td>{s.played}</td>
-                  <td>{s.correct}</td>
-                  <td>{s.played ? Math.round((s.correct / s.played) * 100) + "%" : "–"}</td>
-                  <td><span className="tl-points">{s.points}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+      html += '<div class="tl-segmented">';
+      OPTIONS.forEach(function (opt) {
+        var cls = "tl-seg-btn " + (state.isAdmin ? "clickable" : "") + " " + (m.result === opt ? "result-active" : "");
+        var onclickAttr = state.isAdmin ? (' onclick="tlSetResult(\'' + activeRound.id + '\',\'' + m.id + '\',\'' + opt + '\')"') : "";
+        html += '<button class="' + cls + '" title="' + OPTION_LABEL[opt] + '"' + onclickAttr + ">" + opt + "</button>";
+      });
+      html += "</div></div>";
 
-        {loaded && tab === "historie" && (
-          <div className="tl-history">
-            {rounds.length === 0 && <div className="tl-empty">Přehled je zatím prázdný — nejsou žádná kola.</div>}
-            {[...rounds].sort((a, b) => b.number - a.number).map((r) => (
-              <div className="tl-history-round" key={r.id}>
-                <div className="tl-history-round-title">Kolo {r.number}</div>
-                {r.matches.length === 0 ? (<div className="tl-empty">Žádné zápasy.</div>) : (
-                  <div className="tl-history-table-wrap">
-                    <table className="tl-history-table">
-                      <thead><tr><th>Zápas</th><th>Výsledek</th>{PLAYERS.map((p) => <th key={p}>{p}</th>)}</tr></thead>
-                      <tbody>
-                        {r.matches.map((m) => (
-                          <tr key={m.id}>
-                            <td className="tl-history-teams">{m.home}<span className="vs">–</span>{m.away}{m.date && <div className="tl-date">{m.date}</div>}</td>
-                            <td><span className={`tl-history-result ${m.result != null ? "set" : ""}`}>{m.result != null ? m.result : "–"}</span></td>
-                            {PLAYERS.map((p) => { const tip = m.tips[p]; let cls = "tl-history-tip"; if (tip == null) cls += " empty"; else if (m.result != null) cls += tip === m.result ? " correct" : " wrong"; return <td key={p}><span className={cls}>{tip != null ? tip : "–"}</span></td>; })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+      html += '<div class="tl-tip-rows">';
+      PLAYERS.forEach(function (p) {
+        var tip = m.tips[p];
+        html += '<div class="tl-tip-row"><span class="tl-tip-player">' + p + "</span>";
+        if (state.isAdmin) {
+          html += '<div class="tl-segmented">';
+          OPTIONS.forEach(function (opt) {
+            var cls = "tl-seg-btn clickable";
+            if (tip === opt) {
+              if (m.result !== null && m.result !== undefined) cls += (tip === m.result ? " tip-correct" : " tip-wrong");
+              else cls += " tip-active";
+            } else {
+              cls += " tip-empty";
+            }
+            html += '<button class="' + cls + '" onclick="tlSetTip(\'' + activeRound.id + '\',\'' + m.id + '\',\'' + p + '\',\'' + opt + '\')">' + opt + "</button>";
+          });
+          html += "</div>";
+        } else {
+          var filled = (tip !== null && tip !== undefined);
+          var vcls = "tl-viewonly-tip";
+          if (filled) {
+            if (m.result !== null && m.result !== undefined) vcls += (tip === m.result ? " correct" : " wrong");
+            else vcls += " filled";
+          }
+          html += '<div class="' + vcls + '">' + (filled ? tip : "&ndash;") + "</div>";
+        }
+        html += "</div>";
+      });
+      html += "</div>";
 
-ReactDOM.createRoot(document.getElementById("root")).render(<TipujLiga />);
+      if (state.isAdmin) {
+        html += '<button class="tl-del-match" onclick="tlDeleteMatch(\'' + activeRound.id + '\',\'' + m.id + '\')">smazat z&aacute;pas</button>';
+      }
+      html += "</div>";
+    });
+
+    if (editing) {
+      html += '<button class="tl-save-round" onclick="tlSaveEditRound(\'' + activeRound.id + '\')">Ulo&#382;it</button>';
+    }
+
+    if (state.isAdmin) {
+      var nd = state.newMatchDraft[activeRound.id] || { home: "", away: "", date: "" };
+      html += '<div class="tl-addmatch">' +
+        '<input class="teams" list="tl-teams-list" placeholder="Dom&aacute;c&iacute;" value="' + esc(nd.home) + '" oninput="tlNewMatchInput(\'' + activeRound.id + '\',\'home\',this.value)">' +
+        '<span class="tl-vs-label">vs</span>' +
+        '<input class="teams" list="tl-teams-list" placeholder="Host&eacute;" value="' + esc(nd.away) + '" oninput="tlNewMatchInput(\'' + activeRound.id + '\',\'away\',this.value)">' +
+        '<input class="date" placeholder="25.7. 17:00" value="' + esc(nd.date) + '" oninput="tlNewMatchInput(\'' + activeRound.id + '\',\'date\',this.value)">' +
+        '<button onclick="tlAddMatch(\'' + activeRound.id + '\')">+ P&#345;idat z&aacute;pas</button>' +
+        "</div>";
+    }
+
+    html += "</div>";
+    html += renderTeamsDatalist();
+
+    if (state.isAdmin) {
+      html += '<div class="tl-hint">Klikni na 1 / 0 / 2 u hr&aacute;&#269;e a zadej jeho tip. Stejn&#283; nastav&iacute;&scaron; v&yacute;sledek z&aacute;pasu vpravo naho&#345;e v kart&#283;.<br>Data se ukl&aacute;daj&iacute; automaticky a jsou vid&#283;t v&scaron;em, kdo appku otev&#345;ou.</div>';
+    }
+
+    return html;
+  }
+
+  function renderTeamsDatalist() {
+    var opts = TEAMS.map(function (t) { return '<option value="' + esc(t) + '"></option>'; }).join("");
+    return '<datalist id="tl-teams-list">' + opts + "</datalist>";
+  }
+
+  function renderTabulka() {
+    var rows = "";
+    var standings = computeStandings();
+    for (var i = 0; i < standings.length; i++) {
+      var s = standings[i];
+      var rankCls = i === 0 ? "gold" : i === 1 ? "silver" : i === 2 ? "bronze" : "";
+      var pct = s.played ? Math.round((s.correct / s.played) * 100) + "%" : "&ndash;";
+      rows += "<tr><td><span class=\"tl-rank " + rankCls + "\">" + (i + 1) + "</span></td>" +
+        '<td class="tl-name-cell">' + s.name + "</td>" +
+        "<td>" + s.played + "</td><td>" + s.correct + "</td><td>" + pct + '</td><td><span class="tl-points">' + s.points + "</span></td></tr>";
+    }
+    return '<table class="tl-standings"><thead><tr><th>#</th><th>Hr&aacute;&#269;</th><th>Odehr&aacute;no</th><th>Trefeno</th><th>&Uacute;sp&#283;&scaron;nost</th><th>Body</th></tr></thead><tbody>' + rows + "</tbody></table>";
+  }
+
+  function renderHistorie() {
+    if (state.rounds.length === 0) return '<div class="tl-empty">P&#345;ehled je zat&iacute;m pr&aacute;zdn&yacute; &mdash; nejsou &#382;&aacute;dn&aacute; kola.</div>';
+    var sorted = state.rounds.slice().sort(function (a, b) { return b.number - a.number; });
+    var html = '<div class="tl-history">';
+    sorted.forEach(function (r) {
+      html += '<div class="tl-history-round"><div class="tl-history-round-title">Kolo ' + r.number + "</div>";
+      if (r.matches.length === 0) {
+        html += '<div class="tl-empty">&#381;&aacute;dn&eacute; z&aacute;pasy.</div>';
+      } else {
+        html += '<div class="tl-history-table-wrap"><table class="tl-history-table"><thead><tr><th>Z&aacute;pas</th><th>V&yacute;sledek</th>';
+        PLAYERS.forEach(function (p) { html += "<th>" + p + "</th>"; });
+        html += "</tr></thead><tbody>";
+        r.matches.forEach(function (m) {
+          html += '<tr><td class="tl-history-teams">' + esc(m.home) + '<span class="vs">&ndash;</span>' + esc(m.away) +
+            (m.date ? '<div class="tl-date">' + esc(m.date) + "</div>" : "") + "</td>";
+          html += '<td><span class="tl-history-result ' + (m.result !== null && m.result !== undefined ? "set" : "") + '">' + (m.result !== null && m.result !== undefined ? m.result : "&ndash;") + "</span></td>";
+          PLAYERS.forEach(function (p) {
+            var tip = m.tips[p];
+            var cls = "tl-history-tip";
+            var hasTip = (tip !== null && tip !== undefined);
+            if (!hasTip) cls += " empty";
+            else if (m.result !== null && m.result !== undefined) cls += (tip === m.result ? " correct" : " wrong");
+            html += "<td><span class=\"" + cls + "\">" + (hasTip ? tip : "&ndash;") + "</span></td>";
+          });
+          html += "</tr>";
+        });
+        html += "</tbody></table></div>";
+      }
+      html += "</div>";
+    });
+    html += "</div>";
+    return html;
+  }
+
+  loadData(false);
+})();
 </script>
 </body>
 </html>
