@@ -134,10 +134,10 @@
 
   var BLOB_ID = ""; // <-- SEM vlož ID z banneru po prvním spuštění a znovu ulož soubor na GitHub
 
-  var JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
+  var STORAGE_BASE = "https://api.extendsclass.com/json-storage";
 
   function blobGet(id) {
-    return fetch(JSONBLOB_BASE + "/" + id, { headers: { "Content-Type": "application/json" }, cache: "no-store" })
+    return fetch(STORAGE_BASE + "/bin/" + id, { cache: "no-store" })
       .then(function (res) {
         if (!res.ok) throw new Error("blobGet failed: " + res.status);
         return res.json();
@@ -145,7 +145,7 @@
   }
 
   function blobSet(id, data) {
-    return fetch(JSONBLOB_BASE + "/" + id, {
+    return fetch(STORAGE_BASE + "/bin/" + id, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
@@ -155,15 +155,15 @@
   }
 
   function blobCreate(data) {
-    return fetch(JSONBLOB_BASE, {
+    return fetch(STORAGE_BASE + "/bins", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     }).then(function (res) {
       if (!res.ok) throw new Error("blobCreate failed: " + res.status);
-      var location = res.headers.get("Location") || "";
-      var parts = location.split("/").filter(Boolean);
-      return parts[parts.length - 1];
+      return res.json();
+    }).then(function (json) {
+      return json.id;
     });
   }
 
