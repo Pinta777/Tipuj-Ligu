@@ -132,38 +132,24 @@
 (function () {
   "use strict";
 
-  var BLOB_ID = ""; // <-- SEM vlož ID z banneru po prvním spuštění a znovu ulož soubor na GitHub
+  var FIREBASE_URL = "https://tipuj-ligu-default-rtdb.europe-west1.firebasedatabase.app";
+  var DATA_PATH = "/rounds.json";
 
-  var STORAGE_BASE = "https://api.extendsclass.com/json-storage";
-
-  function blobGet(id) {
-    return fetch(STORAGE_BASE + "/bin/" + id, { cache: "no-store" })
+  function fbGet() {
+    return fetch(FIREBASE_URL + DATA_PATH, { cache: "no-store" })
       .then(function (res) {
-        if (!res.ok) throw new Error("blobGet failed: " + res.status);
+        if (!res.ok) throw new Error("fbGet failed: " + res.status);
         return res.json();
       });
   }
 
-  function blobSet(id, data) {
-    return fetch(STORAGE_BASE + "/bin/" + id, {
+  function fbSet(data) {
+    return fetch(FIREBASE_URL + DATA_PATH, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     }).then(function (res) {
-      if (!res.ok) throw new Error("blobSet failed: " + res.status);
-    });
-  }
-
-  function blobCreate(data) {
-    return fetch(STORAGE_BASE + "/bins", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    }).then(function (res) {
-      if (!res.ok) throw new Error("blobCreate failed: " + res.status);
-      return res.json();
-    }).then(function (json) {
-      return json.id;
+      if (!res.ok) throw new Error("fbSet failed: " + res.status);
     });
   }
 
@@ -193,32 +179,15 @@
     newMatchDraft: {},
     isRefreshing: false,
     justRefreshed: false,
-    saveStatus: "idle",
-    setupBlobId: null
+    saveStatus: "idle"
   };
   var lastPayload = null;
 
   function loadData(manual) {
     if (manual) { state.isRefreshing = true; render(); }
 
-    if (!BLOB_ID) {
-      blobCreate({ rounds: [] }).then(function (newId) {
-        state.setupBlobId = newId;
-        state.rounds = [];
-        state.loaded = true;
-        if (manual) state.isRefreshing = false;
-        render();
-      }).catch(function () {
-        state.setupBlobId = "ERROR";
-        state.loaded = true;
-        if (manual) state.isRefreshing = false;
-        render();
-      });
-      return;
-    }
-
-    blobGet(BLOB_ID).then(function (data) {
-      var parsed = Array.isArray(data.rounds) ? data.rounds : [];
+    fbGet().then(function (data) {
+      var parsed = Array.isArray(data) ? data : [];
       state.rounds = parsed;
       var stillExists = state.activeRoundId && parsed.some(function (r) { return r.id === state.activeRoundId; });
       if (!stillExists) {
@@ -243,11 +212,9 @@
     lastPayload = next;
     render();
 
-    if (!BLOB_ID) { state.saveStatus = "error"; render(); return; }
-
     state.saveStatus = "saving";
     render();
-    blobSet(BLOB_ID, { rounds: next }).then(function () {
+    fbSet(next).then(function () {
       state.saveStatus = "saved";
       render();
       setTimeout(function () {
@@ -454,14 +421,6 @@
   }
 
   function renderSetupBanner() {
-    if (state.setupBlobId && state.setupBlobId !== "ERROR") {
-      return '<div class="tl-setup-banner"><strong>Jednorazove nastaveni:</strong> appka vytvorila sdilene uloziste dat. Zkopiruj tohle ID:<br>' +
-        "<code>" + esc(state.setupBlobId) + "</code><br>" +
-        'a v souboru index.html nahrad radek <code>var BLOB_ID = "";</code> za <code>var BLOB_ID = "' + esc(state.setupBlobId) + '";</code>, pak soubor znovu uloz na GitHub.</div>';
-    }
-    if (state.setupBlobId === "ERROR") {
-      return '<div class="tl-setup-banner">Nepodarilo se vytvorit uloziste dat. Zkus obnovit stranku.</div>';
-    }
     return "";
   }
 
