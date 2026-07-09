@@ -183,11 +183,30 @@
   };
   var lastPayload = null;
 
+  function normalizeRounds(parsed) {
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(Boolean).map(function (r) {
+      var matches = Array.isArray(r.matches) ? r.matches : [];
+      matches = matches.filter(Boolean).map(function (m) {
+        var tips = m.tips && typeof m.tips === "object" ? m.tips : {};
+        var fullTips = {};
+        PLAYERS.forEach(function (p) { fullTips[p] = (tips[p] === undefined ? null : tips[p]); });
+        var copy = {}; for (var k in m) copy[k] = m[k];
+        copy.tips = fullTips;
+        if (copy.result === undefined) copy.result = null;
+        return copy;
+      });
+      var rcopy = {}; for (var k2 in r) rcopy[k2] = r[k2];
+      rcopy.matches = matches;
+      return rcopy;
+    });
+  }
+
   function loadData(manual) {
     if (manual) { state.isRefreshing = true; render(); }
 
     fbGet().then(function (data) {
-      var parsed = Array.isArray(data) ? data : [];
+      var parsed = normalizeRounds(data);
       state.rounds = parsed;
       var stillExists = state.activeRoundId && parsed.some(function (r) { return r.id === state.activeRoundId; });
       if (!stillExists) {
