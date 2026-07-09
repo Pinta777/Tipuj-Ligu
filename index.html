@@ -8,8 +8,9 @@
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
   :root {
-    --bg: #F4F6F2; --surface: #FFFFFF; --ink: #12251C; --ink-dim: #6B7C72; --line: #E3E8DF;
-    --pitch: #1C8B54; --pitch-dark: #146B41; --amber: #EFA23A; --correct: #1FA968; --wrong: #D65B45; --pending: #C9CFC5;
+    --bg: #0A0908; --surface: #17140F; --ink: #F5EFE6; --ink-dim: #9C9086; --line: #2E2721;
+    --pitch: #FF7A1A; --pitch-dark: #E8620A; --amber: #FFC94D; --correct: #3DDC84; --wrong: #FF5C5C; --pending: #4A423B;
+    --on-accent: #1A0F06;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); }
@@ -22,7 +23,7 @@
   .tl-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .tl-admin-pill { font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600; background: var(--surface); border: 1.5px solid var(--line); color: var(--ink-dim); padding: 8px 14px; border-radius: 20px; cursor: pointer; transition: all .15s ease; }
   .tl-admin-pill:hover { border-color: var(--pitch); color: var(--pitch); }
-  .tl-admin-pill.on { border-color: var(--pitch); background: var(--pitch); color: #fff; }
+  .tl-admin-pill.on { border-color: var(--pitch); background: var(--pitch); color: var(--on-accent); }
   .tl-pinbox { display: flex; gap: 6px; align-items: center; }
   .tl-pinbox input { width: 90px; background: var(--bg); border: 1.5px solid var(--line); color: var(--ink); font-family: 'Inter', sans-serif; padding: 7px 10px; border-radius: 8px; letter-spacing: 3px; }
   .tl-pinbox input:focus { outline: none; border-color: var(--pitch); }
@@ -47,7 +48,7 @@
   .tl-body { padding: 20px 22px 48px; max-width: 900px; margin: 0 auto; }
   .tl-roundbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
   .tl-round-chip { font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 13px; padding: 7px 16px; border: 1.5px solid var(--line); color: var(--ink-dim); background: var(--surface); border-radius: 20px; cursor: pointer; }
-  .tl-round-chip.active { color: #fff; background: var(--ink); border-color: var(--ink); }
+  .tl-round-chip.active { color: var(--on-accent); background: var(--pitch); border-color: var(--pitch); }
   .tl-add-round { font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 600; padding: 7px 14px; background: transparent; border: 1.5px dashed var(--pitch); color: var(--pitch); border-radius: 20px; cursor: pointer; }
   .tl-empty { color: var(--ink-dim); font-size: 14px; padding: 36px 16px; text-align: center; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--surface); }
   .tl-round-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
@@ -57,7 +58,7 @@
   .tl-edit-round:hover { opacity: 1; }
   .tl-del-round { background: none; border: none; color: var(--wrong); font-size: 12px; font-weight: 600; cursor: pointer; opacity: .75; }
   .tl-del-round:hover { opacity: 1; }
-  .tl-match-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 1px 2px rgba(18,37,28,0.04); }
+  .tl-match-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.35); }
   .tl-match-top { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
   .tl-teams { font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 600; }
   .tl-teams .vs { color: var(--ink-dim); font-weight: 400; margin: 0 8px; font-size: 14px; }
@@ -71,29 +72,31 @@
   .tl-seg-btn:last-child { border-right: none; }
   .tl-seg-btn.clickable { cursor: pointer; }
   .tl-seg-btn.clickable:hover { background: var(--bg); }
-  .tl-seg-btn.result-active { background: var(--ink); color: #fff; }
+  .tl-seg-btn.result-active { background: var(--pitch); color: var(--on-accent); }
   .tl-tip-rows { display: flex; flex-direction: column; gap: 8px; }
   .tl-tip-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 2px; border-top: 1px solid var(--line); }
   .tl-tip-row:first-child { border-top: none; padding-top: 0; }
   .tl-tip-player { font-size: 13px; font-weight: 600; color: var(--ink); min-width: 64px; }
   .tl-seg-btn.tip-empty { color: var(--pending); }
-  .tl-seg-btn.tip-active { background: var(--ink); color: #fff; }
+  .tl-seg-btn.tip-active { background: var(--pitch); color: var(--on-accent); }
   .tl-seg-btn.tip-correct { background: var(--correct); color: #fff; border-color: var(--correct); }
   .tl-seg-btn.tip-wrong { background: var(--bg); color: var(--wrong); text-decoration: line-through; }
   .tl-viewonly-tip { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--bg); color: var(--pending); }
   .tl-viewonly-tip.correct { background: var(--correct); color: #fff; }
   .tl-viewonly-tip.wrong { background: var(--bg); color: var(--wrong); text-decoration: line-through; }
-  .tl-viewonly-tip.filled { background: var(--ink); color: #fff; }
+  .tl-viewonly-tip.filled { background: var(--pitch); color: var(--on-accent); }
   .tl-del-match { margin-top: 12px; background: none; border: none; color: var(--wrong); font-size: 12px; font-weight: 600; cursor: pointer; opacity: .65; }
   .tl-del-match:hover { opacity: 1; }
-  .tl-save-round { display: block; margin: 0 0 16px auto; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 22px; background: var(--pitch); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  .tl-save-round { display: block; margin: 0 0 16px auto; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 22px; background: var(--pitch); color: var(--on-accent); border: none; border-radius: 8px; cursor: pointer; }
   .tl-save-round:hover { background: var(--pitch-dark); }
   .tl-addmatch { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 14px 16px; background: var(--surface); border: 1.5px dashed var(--line); border-radius: 14px; }
   .tl-addmatch input { background: var(--bg); border: 1.5px solid var(--line); color: var(--ink); font-family: 'Inter', sans-serif; padding: 8px 10px; border-radius: 8px; font-size: 13px; }
   .tl-addmatch input.teams { width: 150px; }
   .tl-addmatch input.date { width: 120px; }
-  .tl-addmatch button { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 16px; background: var(--pitch); color: #fff; border: none; border-radius: 8px; cursor: pointer; }
+  .tl-addmatch button { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 13px; padding: 9px 16px; background: var(--pitch); color: var(--on-accent); border: none; border-radius: 8px; cursor: pointer; }
   .tl-addmatch button:hover { background: var(--pitch-dark); }
+  .tl-addmatch input::placeholder, .tl-edit-fields input::placeholder, .tl-pinbox input::placeholder { color: var(--ink-dim); opacity: 0.7; }
+
   .tl-vs-label { color: var(--ink-dim); font-size: 12px; }
   table.tl-standings { width: 100%; border-collapse: collapse; font-size: 14px; background: var(--surface); border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
   table.tl-standings th, table.tl-standings td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; }
@@ -115,7 +118,7 @@
   .tl-history-teams { text-align: left; font-weight: 600; }
   .tl-history-teams .vs { color: var(--ink-dim); font-weight: 400; margin: 0 6px; }
   .tl-history-result { display: inline-flex; width: 24px; height: 24px; align-items: center; justify-content: center; border-radius: 6px; font-family: 'Space Grotesk', sans-serif; font-weight: 700; background: var(--bg); color: var(--pending); }
-  .tl-history-result.set { background: var(--ink); color: #fff; }
+  .tl-history-result.set { background: var(--pitch); color: var(--on-accent); }
   .tl-history-tip { display: inline-flex; width: 22px; height: 22px; align-items: center; justify-content: center; border-radius: 6px; font-weight: 700; font-size: 12px; color: var(--ink-dim); background: var(--bg); }
   .tl-history-tip.empty { color: var(--pending); }
   .tl-history-tip.correct { background: var(--correct); color: #fff; }
